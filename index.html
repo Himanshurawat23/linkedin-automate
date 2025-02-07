@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Media Uploader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f3f2ef;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header img {
+            width: 60px;
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            color: #0a66c2;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-section {
+            display: none;
+        }
+
+        .login-section, .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn {
+            background-color: #0a66c2;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #004182;
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .file-input-container {
+            border: 2px dashed #0a66c2;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .file-input-container:hover {
+            border-color: #004182;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .preview-item {
+            position: relative;
+            aspect-ratio: 1;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .status-message {
+            text-align: center;
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+
+        .status-message.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .status-message.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="/api/placeholder/60/60" alt="LinkedIn Logo">
+            <h1>LinkedIn Media Uploader</h1>
+        </div>
+
+        <div class="login-section" id="loginSection">
+            <button class="btn" onclick="login()">Login with LinkedIn</button>
+        </div>
+
+        <div class="upload-section" id="uploadSection">
+            <div class="file-input-container" onclick="document.getElementById('fileInput').click()">
+                <p>Click or drag files to upload</p>
+                <p>Supported formats: JPG, JPEG, PNG, MP4, AVI, MOV</p>
+                <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.mp4,.avi,.mov" onchange="handleFileSelect(event)">
+            </div>
+            <div class="preview-container" id="previewContainer"></div>
+            <button class="btn" id="uploadButton" onclick="uploadFiles()" disabled>Upload to LinkedIn</button>
+            <button class="btn" onclick="logout()" style="background-color: #666;">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is already logged in
+        window.onload = function() {
+            checkLoginStatus();
+        };
+
+        function checkLoginStatus() {
+            const token = localStorage.getItem('linkedin_token');
+            if (token) {
+                showUploadSection();
+            } else {
+                showLoginSection();
+            }
+        }
+
+        function showLoginSection() {
+            document.getElementById('loginSection').style.display = 'flex';
+            document.getElementById('uploadSection').style.display = 'none';
+        }
+
+        function showUploadSection() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'flex';
+        }
+
+        function login() {
+            // Redirect to the backend login route
+            window.location.href = 'http://127.0.0.1:5000/login';
+        }
+
+        function logout() {
+            fetch('http://127.0.0.1:5000/logout')
+                .then(response => response.json())
+                .then(data => {
+                    localStorage.removeItem('linkedin_token');
+                    showLoginSection();
+                    showStatus('Logged out successfully', 'success');
+                })
+                .catch(error => showStatus('Logout failed: ' + error, 'error'));
+        }
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = '';
+            
+            Array.from(files).forEach((file, index) => {
+                const reader = new FileReader();
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = function(e) {
+                        e.stopPropagation();
+                        previewItem.remove();
+                        updateUploadButton();
+                    };
+                    
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(removeBtn);
+                };
+                
+                reader.readAsDataURL(file);
+                previewContainer.appendChild(previewItem);
+            });
+            
+            updateUploadButton();
+        }
+
+        function updateUploadButton() {
+            const previewItems = document.querySelectorAll('.preview-item');
+            document.getElementById('uploadButton').disabled = previewItems.length === 0;
+        }
+
+        function showStatus(message, type) {
+            const container = document.querySelector('.container');
+            const existingStatus = document.querySelector('.status-message');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.textContent = message;
+            container.appendChild(statusDiv);
+            
+            setTimeout(() => statusDiv.remove(), 5000);
+        }
+
+        function uploadFiles() {
+            const fileInput = document.getElementById('fileInput');
+            const formData = new FormData();
+            
+            Array.from(fileInput.files).forEach(file => {
+                formData.append('media', file);
+            });
+
+            const uploadButton = document.getElementById('uploadButton');
+            uploadButton.disabled = true;
+            uploadButton.textContent = 'Uploading...';
+
+            fetch('http://127.0.0.1:5000/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                showStatus('Files uploaded successfully!', 'success');
+                document.getElementById('previewContainer').innerHTML = '';
+                fileInput.value = '';
+                updateUploadButton();
+            })
+            .catch(error => {
+                showStatus('Upload failed: ' + error.message, 'error');
+            })
+            .finally(() => {
+                uploadButton.disabled = false;
+                uploadButton.textContent = 'Upload to LinkedIn';
+            });
+        }
+    </script>
+</body>
+</html>

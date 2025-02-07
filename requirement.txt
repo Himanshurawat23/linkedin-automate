@@ -1,0 +1,4 @@
+flask
+openai
+linkedin_api
+python-dotenv
