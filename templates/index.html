@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,7 +51,8 @@
             display: none;
         }
 
-        .login-section, .upload-section {
+        .login-section,
+        .upload-section {
             display: flex;
             flex-direction: column;
             gap: 1rem;
@@ -146,6 +148,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -161,7 +164,8 @@
             <div class="file-input-container" onclick="document.getElementById('fileInput').click()">
                 <p>Click or drag files to upload</p>
                 <p>Supported formats: JPG, JPEG, PNG, MP4, AVI, MOV</p>
-                <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.mp4,.avi,.mov" onchange="handleFileSelect(event)">
+                <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.mp4,.avi,.mov"
+                    onchange="handleFileSelect(event)">
             </div>
             <div class="preview-container" id="previewContainer"></div>
             <button class="btn" id="uploadButton" onclick="uploadFiles()" disabled>Upload to LinkedIn</button>
@@ -171,7 +175,7 @@
 
     <script>
         // Check if user is already logged in
-        window.onload = function() {
+        window.onload = function () {
             checkLoginStatus();
         };
 
@@ -214,33 +218,33 @@
             const files = event.target.files;
             const previewContainer = document.getElementById('previewContainer');
             previewContainer.innerHTML = '';
-            
+
             Array.from(files).forEach((file, index) => {
                 const reader = new FileReader();
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
-                
-                reader.onload = function(e) {
+
+                reader.onload = function (e) {
                     const img = document.createElement('img');
                     img.src = e.target.result;
-                    
+
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'remove-btn';
                     removeBtn.innerHTML = '×';
-                    removeBtn.onclick = function(e) {
+                    removeBtn.onclick = function (e) {
                         e.stopPropagation();
                         previewItem.remove();
                         updateUploadButton();
                     };
-                    
+
                     previewItem.appendChild(img);
                     previewItem.appendChild(removeBtn);
                 };
-                
+
                 reader.readAsDataURL(file);
                 previewContainer.appendChild(previewItem);
             });
-            
+
             updateUploadButton();
         }
 
@@ -255,19 +259,19 @@
             if (existingStatus) {
                 existingStatus.remove();
             }
-            
+
             const statusDiv = document.createElement('div');
             statusDiv.className = `status-message ${type}`;
             statusDiv.textContent = message;
             container.appendChild(statusDiv);
-            
+
             setTimeout(() => statusDiv.remove(), 5000);
         }
 
         function uploadFiles() {
             const fileInput = document.getElementById('fileInput');
             const formData = new FormData();
-            
+
             Array.from(fileInput.files).forEach(file => {
                 formData.append('media', file);
             });
@@ -280,24 +284,25 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                showStatus('Files uploaded successfully!', 'success');
-                document.getElementById('previewContainer').innerHTML = '';
-                fileInput.value = '';
-                updateUploadButton();
-            })
-            .catch(error => {
-                showStatus('Upload failed: ' + error.message, 'error');
-            })
-            .finally(() => {
-                uploadButton.disabled = false;
-                uploadButton.textContent = 'Upload to LinkedIn';
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    showStatus('Files uploaded successfully!', 'success');
+                    document.getElementById('previewContainer').innerHTML = '';
+                    fileInput.value = '';
+                    updateUploadButton();
+                })
+                .catch(error => {
+                    showStatus('Upload failed: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = 'Upload to LinkedIn';
+                });
         }
     </script>
 </body>
+
 </html>
